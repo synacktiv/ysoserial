@@ -42,6 +42,8 @@ As a result, artifacts cannot be downloaded anymore.
 
 You can find this library and a workaround to fix this issue [here](https://github.com/BishopFox/ysoserial-bf?tab=readme-ov-file#missing-javaxinterceptor-api-library).
 
+However, maven should be able to import this dependency as this project now imports the version `1.2-b01`, which was really close to `3.1`.
+
 ## Usage
 
 ```shell
