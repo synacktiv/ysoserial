@@ -93,7 +93,7 @@ public abstract class ParameterizedTransletObjectPayload<T> extends Parameterize
 
         CommandLine cline = new DefaultParser().parse(CLI_OPTIONS, args);
         if (cline.hasOption("help")) {
-            throw new IllegalArgumentException(); //print help
+            throw new IllegalArgumentException(this.getHelp()); //print help
         }
         else if (cline.hasOption("jar-file")) {
             if (cline.hasOption("jar-main")) {

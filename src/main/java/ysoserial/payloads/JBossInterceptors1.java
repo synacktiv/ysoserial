@@ -65,7 +65,7 @@ public class JBossInterceptors1 extends ParameterizedTransletObjectPayload<Objec
         InterceptionModel model = builder.build();
 
         HashMap map = new HashMap();
-        map.put("ysoserial", "ysoserial");
+        map.put("element", "element");
 
         DefaultInvocationContextFactory factory = new DefaultInvocationContextFactory();
 

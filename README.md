@@ -49,7 +49,8 @@ However, maven should be able to import this dependency as this project now impo
 ```shell
 $  java -jar ysoserial.jar
 Y SO SERIAL?
-Usage: java -jar ysoserial-[version]-all.jar [payload] [arguments ...]
+Usage: java -Dysoserial.class_prefix='javax.objects.Object' -jar ysoserial-[version]-all.jar [payload] [arguments ...]
+Override generated classes prefix using 'ysoserial.class_prefix' property (default: javax.objects.Object)
   Available payload types:
      Payload             Authors                     Dependencies
      -------             -------                     ------------
