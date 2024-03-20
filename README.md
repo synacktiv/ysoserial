@@ -9,6 +9,8 @@ A proof-of-concept tool for generating payloads that exploit unsafe Java object 
 
 ![logo](ysoserial.png)
 
+This is a fork from Synacktiv, see [our blog post](https://www.synacktiv.com/en/publications/java-deserialization-tricks) for more details.
+
 ## Description
 
 Originally released as part of AppSecCali 2015 Talk
